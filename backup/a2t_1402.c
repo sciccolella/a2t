@@ -66,7 +66,7 @@ print_tree(node_t *root){
 }
 
 int
-calc_min(int a, int b) {
+min(int a, int b) {
   if (a < b) return a;
   return b;
 }
@@ -80,17 +80,66 @@ lcp2(char *a, char *b){
   return i;
 }
 
+void
+label_constr_rec(char *buff, node_t *node, int *sa, char *word, int word_size) {
+  node_t *r_child = node->first_child;
+  node_t *l_child = node->first_child->next_sibling;
+
+  // Caso base della ricorsione:
+  // viene calcolato come CASO 1
+  if (r_child->first_child == NULL &&
+        l_child->first_child == NULL) {
+          int a = atoi(r_child->name);
+          int b = atoi(l_child->name);
+          char label[255];
+          int l = lcp2(word+a, word+b);
+
+          // Label del figlio destro:
+          // w[SA[r] + lcp(r,l): ]
+          strcpy(label, word + a + l);
+          //label[word_size - a -l] = '\0';
+          strcpy(r_child->label, label);
+
+          // Label del figlio sinistro:
+          // w[SA[l] + lcp(r,l): ]
+          strcpy(label, word + b + l);
+          //label[word_size - b -l] = '\0';
+          strcpy(l_child->label, label);
+
+          int m = min(a,b) -1;
+          l++;
+          strcpy(label, word+m);
+          label[l] = '\0';
+
+          strcpy(buff, label);
+          return;
+        }
+
+  // Passo ricorsivo:
+  // buff contiene l'etichetta del percorso dalla radice al nodo attuale
+  if (r_child->first_child == NULL){
+    
+  } else {
+
+  }
+
+
+
+  strcpy(buff, "x");
+}
+
 node_t *
 a2t_rec(int *sa, unsigned int *lcp, int r, int l, char *word, int word_size){
-  printf("(r,l) -> (%d,%d)\n", r,l); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   //In questo caso il nodo che si va a creare è una foglia
   if(r == l-1) {
     char name[25];
     sprintf(name, "%d", sa[r]+1);
-    printf("foglia\n"); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    return node_new(name, "label");
-
+      //DA CANCELLARE <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+      //int start = sa[r] + lcp[r];
+      //char label[255];
+      //strcpy(label, word+start);
+      return node_new(name, "label");
   }
 
 
@@ -104,55 +153,25 @@ a2t_rec(int *sa, unsigned int *lcp, int r, int l, char *word, int word_size){
     }
   }
 
-  //cerca se il minimo è unico
-  int mins[l];
-  memset(mins, -1, sizeof(mins));
-
-  int mins_p = 0;
-  for(int i = 0; i < l; i++) {
-    if (lcp[i] == lcp[min]) {
-      mins[mins_p] = i;
-      mins_p++;
-    }
-  }
-
-
   char name[25];
   sprintf(name, "I%d", min);
+  //Se il nodo n è intermedio allora:  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<CANCELLARE
+  //label[n] = word[sa[n] + lcp[n] : word_size - 1]
+  //int start = sa[r] + lcp[r];
+  //char label[255];
+  //strncpy(label, word+start, word_size - start - 1);
+  //label[word_size - start - 1] = '\0';
   node_t *actual_node = node_new(name, "label");
 
-  printf("min: %d\n", min);
-  if(mins_p > 1) {
-    printf("if\n"); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    //chiamate ricorsive per costruzione Suffix Tree
-    int i = 0;
-    while (mins[i] != -1 && i < l) {
-      printf("\tin while\n"); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-      node_t *node;
-      if (mins[i+1] != -1)
-        node = a2t_rec(sa, lcp, mins[i], mins[i+1], word, word_size);
-      else
-        node = a2t_rec(sa, lcp, mins[i], l, word, word_size);
+  // chiamo ricorsivamente a2t_rec sulle porzioni
+  // lcp[r:min] e lcp[min:l]
+  // i due sottoalberi che vengono creati dalle due ricorsioni
+  // sono i figli del nodo attuale
+  node_t *r_subtree = a2t_rec(sa, lcp, r, min, word, word_size);
+  node_t *l_subtree = a2t_rec(sa, lcp, min, l, word, word_size);
 
-
-        node_append(actual_node, node);
-        i++;
-    }
-    //-------------------------------------------------
-  } else {
-    printf("else\n"); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-
-    // chiamo ricorsivamente a2t_rec sulle porzioni
-    // lcp[r:min] e lcp[min:l]
-    // i due sottoalberi che vengono creati dalle due ricorsioni
-    // sono i figli del nodo attuale
-    node_t *r_subtree = a2t_rec(sa, lcp, r, min, word, word_size);
-    node_t *l_subtree = a2t_rec(sa, lcp, min, l, word, word_size);
-
-    node_append(actual_node, r_subtree);
-    node_append(actual_node, l_subtree);
-  }
+  node_append(actual_node, r_subtree);
+  node_append(actual_node, l_subtree);
 
   return actual_node;
 
@@ -185,6 +204,67 @@ a2t(int *sa, unsigned int *lcp, int size, char *word, int word_size) {
       node = a2t_rec(sa, lcp, zeros[i], size, word, word_size);
 
 
+    // CASO 2
+    // In questo caso il nodo ritornato dalla chiamata ricorsiva è una foglia
+    // il cui padre è la radice perciò posso sapere subito la sua etichetta:
+    // label[n] = word[sa[n]:]
+    if (node->first_child == NULL){
+      int start = atoi(node->name) -1;
+      char label[255];
+      strcpy(label, word+start);
+      //label[word_size - start] = '\0';
+      strcpy(node->label, label);
+    } else {
+        // CASO 1
+        node_t *r_child = node->first_child;
+        node_t *l_child = node->first_child->next_sibling;
+        if (r_child->first_child == NULL &&
+              l_child->first_child == NULL){
+                int a = atoi(r_child->name);
+                int b = atoi(l_child->name);
+                char label[255];
+                int l = lcp2(word+a, word+b);
+
+                // Label del figlio destro:
+                // w[SA[r] + lcp(r,l): ]
+                strcpy(label, word + a + l);
+                //label[word_size - a -l] = '\0';
+                strcpy(r_child->label, label);
+
+                // Label del figlio sinistro:
+                // w[SA[l] + lcp(r,l): ]
+                strcpy(label, word + b + l);
+                //label[word_size - b -l] = '\0';
+                strcpy(l_child->label, label);
+
+                // Label del nodo attuale:
+                // w[ min{a,b}: min{a,b} + lcp(a,b)]
+                int m = min(a,b) -1;
+                l++;
+                strcpy(label, word+m);
+                label[l] = '\0';
+                //label[word_size -m -l] = '\0';
+                strcpy(node->label, label);
+              } else {
+
+                // CASO 3
+                // Risolvibile ricorsivamente
+                char label[255];
+                if (r_child->first_child == NULL) {
+                  label_constr_rec(label, l_child, sa, word, word_size);
+
+                } else {
+                  label_constr_rec(label, r_child, sa, word, word_size);
+
+                }
+
+                printf("Rec: %s.\n", label);
+
+              }
+
+
+      }
+
       node_append(root, node);
       i++;
     }
@@ -192,8 +272,16 @@ a2t(int *sa, unsigned int *lcp, int size, char *word, int word_size) {
   return root;
 }
 
+
 int
 main(int argc, const char *argv[]) {
+
+  //TEST with BANANA$ LCP
+  /*
+  char word[] = "BANANA_";
+  int sa[] = {6,5,3,1,0,4,2};
+  int lcp[] = {0,0,1,3,0,0,2};
+  */
 
   // Controlla il numero di argomenti:
   if(argc != 2) {
@@ -264,6 +352,22 @@ main(int argc, const char *argv[]) {
 
   free(SA);
   free(T);
+
+
+
+
+  /*
+  char word[] = "ANANAS_";
+  int sa[] = {6,0,2,4,1,3,5};
+  int lcp[] = {0,0,3,1,0,2,0};
+  */
+  /*
+  char word[] = "ABRACADABRA_";
+  int sa[] = {11,10,7,0,3,5,8,1,4,6,9,2};
+  int lcp[] = {0,0,1,4,1,1,0,3,0,0,0,2};
+  */
+
+
 
 
   print_tree(root);
