@@ -3,6 +3,7 @@
 #include <string.h>
 #include <limits.h>
 #include "sais.h"
+#include <stdbool.h>
 
 
 typedef struct Node {
@@ -80,6 +81,21 @@ lcp2(char *a, char *b){
   return i;
 }
 
+int
+lcpn(char *args[], int n) {
+  int _lcp = 0;
+  while(true) {
+    char check = args[0][_lcp];
+    for (int i = 1; i < n; i++) {
+      if (args[i][_lcp] != check)
+        return _lcp;
+    }
+    _lcp++;
+  }
+
+  return -1;
+}
+
 node_t *
 a2t_rec(int *sa, unsigned int *lcp, int r, int l, char *word, int word_size){
   printf("(r,l) -> (%d,%d)\n", r,l); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -89,7 +105,16 @@ a2t_rec(int *sa, unsigned int *lcp, int r, int l, char *word, int word_size){
     char name[25];
     sprintf(name, "%d", sa[r]+1);
     printf("foglia\n"); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    return node_new(name, "label");
+    // Se il nodo n e' una foglia =>
+    // label[n] = w[SA[n]:]
+    // NOTA: nella costruzione delle label si intende come valore di label
+    // L'etichetta del percorso dalla radice al nodo attuale, ricorsivamente
+    // i valori verranno impostati correttamente per avere il valore
+    // dell'etichetta di un nodo a suo padre.
+    char label[255];
+    strcpy(label, word + sa[r]);
+    printf("%s.\n", label);
+    return node_new(name, label);
 
   }
 
@@ -152,6 +177,45 @@ a2t_rec(int *sa, unsigned int *lcp, int r, int l, char *word, int word_size){
 
     node_append(actual_node, r_subtree);
     node_append(actual_node, l_subtree);
+  }
+
+  // conto i figli del nodo attuale
+
+  node_t *node_c = actual_node->first_child;
+  int num = 0;
+  while (node_c != NULL) {
+    num++;
+    node_c = node_c->next_sibling;
+  }
+
+  // creao un array della labels dei figli del nodo attuale
+  char *children_labels[num];
+  node_c = actual_node->first_child;
+  int i = 0;
+  while (node_c != NULL) {
+    children_labels[i] = node_c->label;
+    i++;
+    node_c = node_c->next_sibling;
+  }
+
+  int lcp_children = lcpn(children_labels, num);
+
+  node_c = actual_node->first_child;
+
+  // modifico la label del nodo attuale
+  char actual_label[255];
+  strcpy(actual_label, node_c->label);
+  actual_label[lcp_children] = '\0';
+  strcpy(actual_node->label, actual_label);
+
+  printf("Nodo:%s. - Label:%s.\n", actual_node->name, actual_node->label);
+
+
+  // modifico le labels dei figli
+
+  while (node_c != NULL) {
+    strcpy(node_c->label, node_c->label+lcp_children);
+    node_c = node_c->next_sibling;
   }
 
   return actual_node;
