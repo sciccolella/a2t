@@ -1,10 +1,11 @@
+// Simone Ciccolella 762234
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 #include "sais.h"
 #include <stdbool.h>
-
 
 typedef struct Node {
   char name[25];
@@ -98,13 +99,10 @@ lcpn(char *args[], int n) {
 
 node_t *
 a2t_rec(int *sa, unsigned int *lcp, int r, int l, char *word, int word_size){
-  printf("(r,l) -> (%d,%d)\n", r,l); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
   //In questo caso il nodo che si va a creare è una foglia
   if(r == l-1) {
     char name[25];
     sprintf(name, "%d", sa[r]+1);
-    printf("foglia\n"); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     // Se il nodo n e' una foglia =>
     // label[n] = w[SA[n]:]
     // NOTA: nella costruzione delle label si intende come valore di label
@@ -113,7 +111,6 @@ a2t_rec(int *sa, unsigned int *lcp, int r, int l, char *word, int word_size){
     // dell'etichetta di un nodo a suo padre.
     char label[255];
     strcpy(label, word + sa[r]);
-    printf("%s.\n", label);
     return node_new(name, label);
 
   }
@@ -146,13 +143,14 @@ a2t_rec(int *sa, unsigned int *lcp, int r, int l, char *word, int word_size){
   sprintf(name, "I%d", min);
   node_t *actual_node = node_new(name, "label");
 
-  printf("min: %d\n", min);
+// CHIAMATE RICORSIVE per costruzione Suffix Tree
   if(mins_p > 1) {
-    printf("if\n"); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    //chiamate ricorsive per costruzione Suffix Tree
+    /**
+     Se il minimo non è unico allora significa che il nodo attuale intermedio
+     ha più di due figli, perciò devo costruire il suo sottoalbero in modo
+     simile a quello in cui costruisco i figli della radice */
     int i = 0;
     while (mins[i] != -1 && i < l) {
-      printf("\tin while\n"); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
       node_t *node;
       if (mins[i+1] != -1)
         node = a2t_rec(sa, lcp, mins[i], mins[i+1], word, word_size);
@@ -165,13 +163,11 @@ a2t_rec(int *sa, unsigned int *lcp, int r, int l, char *word, int word_size){
     }
     //-------------------------------------------------
   } else {
-    printf("else\n"); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-
-    // chiamo ricorsivamente a2t_rec sulle porzioni
-    // lcp[r:min] e lcp[min:l]
-    // i due sottoalberi che vengono creati dalle due ricorsioni
-    // sono i figli del nodo attuale
+    /*
+     In questo caso il minimo è unico perciò il nodo ha solo due figli dunque
+     chiamo ricorsivamente a2t_rec sulle porzioni lcp[r:min] e lcp[min:l].
+     I due sottoalberi che vengono creati dalle due ricorsioni
+     sono i figli del nodo attuale */
     node_t *r_subtree = a2t_rec(sa, lcp, r, min, word, word_size);
     node_t *l_subtree = a2t_rec(sa, lcp, min, l, word, word_size);
 
@@ -179,8 +175,9 @@ a2t_rec(int *sa, unsigned int *lcp, int r, int l, char *word, int word_size){
     node_append(actual_node, l_subtree);
   }
 
-  // conto i figli del nodo attuale
+  // CALCOLO DELLE ETICHETTE DEI NODI
 
+  // conto i figli del nodo attuale
   node_t *node_c = actual_node->first_child;
   int num = 0;
   while (node_c != NULL) {
@@ -188,7 +185,7 @@ a2t_rec(int *sa, unsigned int *lcp, int r, int l, char *word, int word_size){
     node_c = node_c->next_sibling;
   }
 
-  // creao un array della labels dei figli del nodo attuale
+  // Creo un array della labels dei figli del nodo attuale
   char *children_labels[num];
   node_c = actual_node->first_child;
   int i = 0;
@@ -208,11 +205,9 @@ a2t_rec(int *sa, unsigned int *lcp, int r, int l, char *word, int word_size){
   actual_label[lcp_children] = '\0';
   strcpy(actual_node->label, actual_label);
 
-  printf("Nodo:%s. - Label:%s.\n", actual_node->name, actual_node->label);
 
 
   // modifico le labels dei figli
-
   while (node_c != NULL) {
     strcpy(node_c->label, node_c->label+lcp_children);
     node_c = node_c->next_sibling;
@@ -237,7 +232,6 @@ a2t(int *sa, unsigned int *lcp, int size, char *word, int word_size) {
       zeros_p++;
     }
   }
-
 
   //chiamate ricorsive per costruzione Suffix Tree
   int i = 0;
